@@ -1,0 +1,12 @@
+[build]
+target = "x86_64-pc-windows-gnu"
+
+[target.x86_64-pc-windows-gnu]
+linker = "x86_64-w64-mingw32-gcc"
+
+[target.i686-pc-windows-gnu]
+linker = "i686-w64-mingw32-gcc"
+
+# Linux向けにビルドする際の設定も残しておく
+[target.x86_64-unknown-linux-gnu]
+linker = "gcc"
