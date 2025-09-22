@@ -1,4 +1,4 @@
-#include "driver.h"
+﻿#include "driver.h"
 
 // ドライバエントリーポイント
 NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)

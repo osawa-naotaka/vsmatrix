@@ -1,4 +1,4 @@
-#ifndef _VSMATRIX_H_
+﻿#ifndef _VSMATRIX_H_
 #define _VSMATRIX_H_
 
 #ifdef __cplusplus
