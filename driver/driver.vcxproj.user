@@ -3,13 +3,18 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <RemoveDriver>True</RemoveDriver>
     <InstallMode>HardwareId</InstallMode>
-    <HardwareIdString>Root\driver</HardwareIdString>
+    <HardwareIdString>Root\VsMatrixAudio</HardwareIdString>
     <CommandLine />
     <ScriptPath>C:\Program Files (x86)\Windows Kits\10\Testing\Tests\Utilities\DefaultDriverPackageInstallationTask.dll</ScriptPath>
-    <DbgengRemoteMachineName>devtest2</DbgengRemoteMachineName>
-    <DbgengKernelMachineName>devtest2</DbgengKernelMachineName>
+    <DbgengRemoteMachineName>DriverDev</DbgengRemoteMachineName>
+    <DbgengKernelMachineName>DriverDev</DbgengKernelMachineName>
     <DeployFiles />
     <ScriptName>Microsoft.DriverKit.DefaultDriverPackageInstallationClass.PerformDefaultDriverPackageInstallation</ScriptName>
     <ScriptDeviceQuery />
+    <EnableVerifier>False</EnableVerifier>
+    <AllDrivers>False</AllDrivers>
+    <VerifyProjectOutput>True</VerifyProjectOutput>
+    <VerifyDrivers />
+    <VerifyFlags>133563</VerifyFlags>
   </PropertyGroup>
 </Project>

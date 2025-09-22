@@ -124,6 +124,21 @@ NTSTATUS CreateAudioDevice(WDFDRIVER driver, PWDFDEVICE_INIT deviceInit)
         return status;
     }
 
+    // オーディオデバイスインターフェースの登録
+    // KSCATEGORY_AUDIO GUIDの定義
+    // オーディオデバイスカテゴリGUID (手動定義)
+    static const GUID KSCATEGORY_AUDIO_GUID = { 0x6994AD04, 0x93EF, 0x11D0, { 0xA3, 0xCC, 0x00, 0xA0, 0xC9, 0x22, 0x31, 0x96 } };
+
+    // デバイス作成後にインターフェース登録
+    status = WdfDeviceCreateDeviceInterface(device, &KSCATEGORY_AUDIO_GUID, NULL);
+    if (!NT_SUCCESS(status)) {
+        KdPrint(("VsMatrix: WdfDeviceCreateDeviceInterface failed: 0x%x\n", status));
+        if (deviceContext->AudioBuffer) {
+            ExFreePoolWithTag(deviceContext->AudioBuffer, 'VsAu');
+        }
+        return status;
+    }
+
     KdPrint(("VsMatrix: Audio device created successfully\n"));
     return STATUS_SUCCESS;
 }
@@ -173,6 +188,12 @@ VOID VSMEvtIoDeviceControl(WDFQUEUE Queue, WDFREQUEST Request,
 
     // 基本的なIOCTLのみサポート
     switch (IoControlCode) {
+    case 0x2f0003:  // IOCTL_KS_PROPERTY
+    {
+        KdPrint(("VsMatrix: IOCTL_KS_PROPERTY received\n"));
+        status = HandleKSProperty(Request, InputBufferLength, OutputBufferLength);
+        break;
+    }
     default:
         KdPrint(("VsMatrix: Unsupported IOCTL: 0x%x\n", IoControlCode));
         status = STATUS_INVALID_DEVICE_REQUEST;
@@ -227,4 +248,91 @@ VOID VSMEvtDriverContextCleanup(WDFOBJECT DriverObject)
 {
     UNREFERENCED_PARAMETER(DriverObject);
     KdPrint(("VsMatrix: Driver context cleanup\n"));
+}
+
+// KSプロパティハンドラー
+NTSTATUS HandleKSProperty(WDFREQUEST Request, size_t
+    InputBufferLength, size_t OutputBufferLength)
+{
+    NTSTATUS status = STATUS_NOT_SUPPORTED;
+    WDF_REQUEST_PARAMETERS params;
+    PUCHAR inputBuffer;
+    ULONG outputValue = 0; // 0 is ad-hock
+
+    KdPrint(("VsMatrix: HandleKSProperty called, InputLen=%Iu, OutputLen=%Iu\n",
+        InputBufferLength, OutputBufferLength));
+
+    // リクエストパラメータ取得
+    WDF_REQUEST_PARAMETERS_INIT(&params);
+    WdfRequestGetParameters(Request, &params);
+
+    // METHOD_NEITHERの場合の入力バッファーアクセス
+    inputBuffer = (PUCHAR)params.Parameters.DeviceIoControl.Type3InputBuffer;
+
+    if (inputBuffer == NULL) {
+        KdPrint(("VsMatrix: Input buffer is NULL\n"));
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    __try {
+        // KSプロパティ構造体の解析（簡略化）
+        if (InputBufferLength >= 20) {  // 最小サイズチェック
+            ULONG propertyId = *((PULONG)(inputBuffer + 16));  // GUID後のプロパティID
+
+            KdPrint(("VsMatrix: Property ID: %u\n", propertyId));
+
+            switch (propertyId) {
+            case KSPROPERTY_PIN_CTYPES:  // ピン数
+                outputValue = 1;  // 1つの入力ピンがある
+                status = STATUS_SUCCESS;
+                KdPrint(("VsMatrix: Returned pin count: 1\n"));
+                break;
+
+            case KSPROPERTY_PIN_DATAFLOW:  // データフロー方向
+                outputValue = KSPIN_DATAFLOW_IN;  // 入力デバイス
+                status = STATUS_SUCCESS;
+                KdPrint(("VsMatrix: Returned dataflow: IN\n"));
+                break;
+
+            case KSPROPERTY_PIN_COMMUNICATION:  // 通信タイプ
+                outputValue = KSPIN_COMMUNICATION_SINK;  // シンク
+                status = STATUS_SUCCESS;
+                KdPrint(("VsMatrix: Returned communication: SINK\n"));
+                break;
+
+            default:
+                KdPrint(("VsMatrix: Unsupported property: %u\n", propertyId));
+                status = STATUS_NOT_SUPPORTED;
+                break;
+            }
+
+            // 成功した場合、出力バッファーに値を設定
+            if (NT_SUCCESS(status) && OutputBufferLength >= sizeof(ULONG)) {
+                // WdfRequestのMethod Neitherハンドリング用
+                WDFMEMORY outputMemory;
+                PULONG outputBuffer;
+
+                status = WdfRequestRetrieveOutputMemory(Request, &outputMemory);
+                if (NT_SUCCESS(status)) {
+                    outputBuffer = (PULONG)WdfMemoryGetBuffer(outputMemory, NULL);
+                    if (outputBuffer != NULL) {
+                        *outputBuffer = outputValue;
+                        WdfRequestSetInformation(Request, sizeof(ULONG));
+                    }
+                    else {
+                        status = STATUS_INSUFFICIENT_RESOURCES;
+                    }
+                }
+            }
+        }
+        else {
+            status = STATUS_INVALID_PARAMETER;
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        KdPrint(("VsMatrix: Exception occurred while accessing user buffers\n"));
+        status = STATUS_INVALID_USER_BUFFER;
+    }
+
+    return status;
 }

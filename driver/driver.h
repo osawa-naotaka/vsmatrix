@@ -7,6 +7,25 @@ extern "C" {
 
 #include <ntddk.h>
 #include <wdf.h>
+#include <initguid.h>
+
+// KS プロパティ定数
+#define KSPROPERTY_TYPE_GET                0x00000001
+#define KSPROPERTY_TYPE_SET                0x00000002
+#define KSPROPERTY_TYPE_TOPOLOGY           0x10000000
+
+// ピンプロパティ
+#define KSPROPERTY_PIN_CTYPES              0
+#define KSPROPERTY_PIN_DATAFLOW            3  
+#define KSPROPERTY_PIN_COMMUNICATION       4
+
+// データフロー定数
+#define KSPIN_DATAFLOW_IN                  1
+#define KSPIN_DATAFLOW_OUT                 2
+
+// 通信タイプ定数  
+#define KSPIN_COMMUNICATION_SINK           1
+#define KSPIN_COMMUNICATION_SOURCE         2
 
 // デバイス名
 //#define VSM_DEVICE_NAME L"\\Device\\VsmatrixVAIF1"
@@ -42,6 +61,10 @@ EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL VSMEvtIoDeviceControl;
 // ヘルパー関数
 VOID GenerateSineWave(PDEVICE_CONTEXT deviceContext, PUCHAR buffer, ULONG length);
 NTSTATUS CreateAudioDevice(WDFDRIVER driver, PWDFDEVICE_INIT deviceInit);
+
+NTSTATUS HandleKSProperty(WDFREQUEST Request, size_t
+    InputBufferLength, size_t OutputBufferLength);
+
 
 #ifdef __cplusplus
 }

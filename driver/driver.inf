@@ -4,8 +4,8 @@
 
 [Version]
 Signature   = "$WINDOWS NT$"
-Class       = System ; TODO: specify appropriate Class
-ClassGuid   = {4d36e97d-e325-11ce-bfc1-08002be10318} ; TODO: specify appropriate ClassGuid
+Class       = MEDIA
+ClassGuid   = {4d36e96c-e325-11ce-bfc1-08002be10318}  ; MEDIA class GUID
 Provider    = %ManufacturerName%
 CatalogFile = driver.cat
 DriverVer   = ; TODO: set DriverVer in stampinf property pages
@@ -28,7 +28,7 @@ driver.sys = 1,,
 %ManufacturerName% = Standard,NT$ARCH$.10.0...16299 ; %13% support introduced in build 16299
 
 [Standard.NT$ARCH$.10.0...16299]
-%driver.DeviceDesc% = driver_Device, Root\driver ; TODO: edit hw-id
+%driver.DeviceDesc% = driver_Device, Root\VsMatrixAudio
 
 [driver_Device.NT]
 CopyFiles = File_Copy
