@@ -32,6 +32,8 @@
             openssl
             pkgsCross.mingwW64.stdenv.cc
             pkgsCross.mingwW64.windows.pthreads
+            yarn-berry
+            nodejs_22
           ];
           
           shellHook = ''
