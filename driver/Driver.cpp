@@ -35,12 +35,6 @@ void AudioCodecDriverUnload(
         return;
     }
 
-    if (g_RegistryPath.Buffer != nullptr)
-    {
-        ExFreePool(g_RegistryPath.Buffer);
-        RtlZeroMemory(&g_RegistryPath, sizeof(g_RegistryPath));
-    }
-
     return;
 }
 
@@ -83,24 +77,6 @@ Return Value:
     WDF_OBJECT_ATTRIBUTES       attributes;
 
     PAGED_CODE();
-
-    auto exit = scope_exit([&status, &DriverObject]() {
-        if (!NT_SUCCESS(status))
-        {
-            if (g_RegistryPath.Buffer != nullptr)
-            {
-                ExFreePool(g_RegistryPath.Buffer);
-                RtlZeroMemory(&g_RegistryPath, sizeof(g_RegistryPath));
-            }
-        }
-        });
-
-    status = CopyRegistrySettingsPath(RegistryPath);
-    if (!NT_SUCCESS(status)) {
-        KdPrint(("VsMatrix: CopyRegistrySettingsPath failed: 0x%x\n", status));
-        return status;
-    }
-
 
     WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
 

@@ -25,57 +25,9 @@ Environment:
 #include <ksmedia.h>
 #include "DriverSettings.h"
 
-UNICODE_STRING g_RegistryPath = { 0 };      // This is used to store the registry settings path for the driver
-
 ULONG DeviceDriverTag = DRIVER_TAG;
 
 ULONG IdleTimeoutMsec = IDLE_TIMEOUT_MSEC;
-
-__drv_requiresIRQL(PASSIVE_LEVEL)
-PAGED_CODE_SEG
-NTSTATUS
-CopyRegistrySettingsPath(
-    _In_ PUNICODE_STRING RegistryPath
-)
-/*++
-
-Routine Description:
-
-Copies the following registry path to a global variable.
-
-\REGISTRY\MACHINE\SYSTEM\ControlSetxxx\Services\<driver>\Parameters
-
-Arguments:
-
-RegistryPath - Registry path passed to DriverEntry
-
-Returns:
-
-NTSTATUS - SUCCESS if able to configure the framework
-
---*/
-
-{
-    PAGED_CODE();
-
-    //
-    // Initializing the unicode string, so that if it is not allocated it will not be deallocated too.
-    //
-    RtlInitUnicodeString(&g_RegistryPath, nullptr);
-
-    g_RegistryPath.MaximumLength = RegistryPath->Length + sizeof(WCHAR);
-
-    g_RegistryPath.Buffer = (PWCH)ExAllocatePool2(POOL_FLAG_PAGED, g_RegistryPath.MaximumLength, DRIVER_TAG);
-
-    if (g_RegistryPath.Buffer == nullptr)
-    {
-        return STATUS_INSUFFICIENT_RESOURCES;
-    }
-
-    RtlAppendUnicodeToString(&g_RegistryPath, RegistryPath->Buffer);
-
-    return STATUS_SUCCESS;
-}
 
 PAGED_CODE_SEG
 NTSTATUS

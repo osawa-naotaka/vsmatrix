@@ -176,9 +176,6 @@ EVT_ACX_FACTORY_CIRCUIT_CREATE_CIRCUIT CaptureMCDsp_EvtAcxFactoryCircuitCreateCi
 }
 #endif
 
-// Used to store the registry settings path for the driver:
-extern UNICODE_STRING g_RegistryPath;
-
 // Driver tag name:
 extern ULONG DeviceDriverTag;
 
