@@ -9,7 +9,7 @@ extern "C" {
 #include <wdf.h>
 #include <initguid.h>
 
-// KS プロパティ定数
+    // KS プロパティ定数
 #define KSPROPERTY_TYPE_GET                0x00000001
 #define KSPROPERTY_TYPE_SET                0x00000002
 #define KSPROPERTY_TYPE_TOPOLOGY           0x10000000
@@ -62,8 +62,7 @@ EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL VSMEvtIoDeviceControl;
 VOID GenerateSineWave(PDEVICE_CONTEXT deviceContext, PUCHAR buffer, ULONG length);
 NTSTATUS CreateAudioDevice(WDFDRIVER driver, PWDFDEVICE_INIT deviceInit);
 
-NTSTATUS HandleKSProperty(WDFREQUEST Request, size_t
-    InputBufferLength, size_t OutputBufferLength);
+NTSTATUS HandleKSProperty(WDFREQUEST Request, size_t InputBufferLength, size_t OutputBufferLength);
 
 
 #ifdef __cplusplus
