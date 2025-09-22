@@ -9,56 +9,56 @@ extern "C" {
 #include <wdf.h>
 #include <initguid.h>
 
-// KS ƒvƒƒpƒeƒB’è”
+// KS ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£å®šæ•°
 #define KSPROPERTY_TYPE_GET                0x00000001
 #define KSPROPERTY_TYPE_SET                0x00000002
 #define KSPROPERTY_TYPE_TOPOLOGY           0x10000000
 
-// ƒsƒ“ƒvƒƒpƒeƒB
+// ãƒ”ãƒ³ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£
 #define KSPROPERTY_PIN_CTYPES              0
 #define KSPROPERTY_PIN_DATAFLOW            3  
 #define KSPROPERTY_PIN_COMMUNICATION       4
 
-// ƒf[ƒ^ƒtƒ[’è”
+// ãƒ‡ãƒ¼ã‚¿ãƒ•ãƒ­ãƒ¼å®šæ•°
 #define KSPIN_DATAFLOW_IN                  1
 #define KSPIN_DATAFLOW_OUT                 2
 
-// ’ÊMƒ^ƒCƒv’è”  
+// é€šä¿¡ã‚¿ã‚¤ãƒ—å®šæ•°  
 #define KSPIN_COMMUNICATION_SINK           1
 #define KSPIN_COMMUNICATION_SOURCE         2
 
-// ƒfƒoƒCƒX–¼
+// ãƒ‡ãƒã‚¤ã‚¹å
 //#define VSM_DEVICE_NAME L"\\Device\\VsmatrixVAIF1"
 #define VSM_DEVICE_NAME L"\\Device\\Vsmatrix"
 
-// ƒI[ƒfƒBƒIƒtƒH[ƒ}ƒbƒg’è‹`
+// ã‚ªãƒ¼ãƒ‡ã‚£ã‚ªãƒ•ã‚©ãƒ¼ãƒžãƒƒãƒˆå®šç¾©
 #define SAMPLE_RATE 44100
 #define BITS_PER_SAMPLE 16
 #define CHANNELS 2
 #define BYTES_PER_SAMPLE (BITS_PER_SAMPLE / 8)
 #define BLOCK_ALIGN (CHANNELS * BYTES_PER_SAMPLE)
 #define SINE_FREQUENCY 440
-#define BUFFER_SIZE (SAMPLE_RATE * BLOCK_ALIGN)  // 1•b•ª
+#define BUFFER_SIZE (SAMPLE_RATE * BLOCK_ALIGN)  // 1ç§’åˆ†
 
-// ƒfƒoƒCƒXƒRƒ“ƒeƒLƒXƒg\‘¢‘Ì
+// ãƒ‡ãƒã‚¤ã‚¹ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆæ§‹é€ ä½“
 typedef struct _DEVICE_CONTEXT {
     WDFDEVICE Device;
-    ULONG SinePhase;        // ƒTƒCƒ“”g‚ÌˆÊ‘Š
-    SHORT* AudioBuffer;     // ƒI[ƒfƒBƒIƒoƒbƒtƒ@
-    ULONG BufferSize;       // ƒoƒbƒtƒ@ƒTƒCƒY
-    WDFSPINLOCK BufferLock; // ƒoƒbƒtƒ@ƒAƒNƒZƒX—pƒXƒsƒ“ƒƒbƒN
+    ULONG SinePhase;        // ã‚µã‚¤ãƒ³æ³¢ã®ä½ç›¸
+    SHORT* AudioBuffer;     // ã‚ªãƒ¼ãƒ‡ã‚£ã‚ªãƒãƒƒãƒ•ã‚¡
+    ULONG BufferSize;       // ãƒãƒƒãƒ•ã‚¡ã‚µã‚¤ã‚º
+    WDFSPINLOCK BufferLock; // ãƒãƒƒãƒ•ã‚¡ã‚¢ã‚¯ã‚»ã‚¹ç”¨ã‚¹ãƒ”ãƒ³ãƒ­ãƒƒã‚¯
 } DEVICE_CONTEXT, * PDEVICE_CONTEXT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DEVICE_CONTEXT, GetDeviceContext)
 
-// ŠÖ”ƒvƒƒgƒ^ƒCƒv
+// é–¢æ•°ãƒ—ãƒ­ãƒˆã‚¿ã‚¤ãƒ—
 DRIVER_INITIALIZE DriverEntry;
 EVT_WDF_DRIVER_DEVICE_ADD VSMEvtDeviceAdd;
 EVT_WDF_OBJECT_CONTEXT_CLEANUP VSMEvtDriverContextCleanup;
 EVT_WDF_IO_QUEUE_IO_READ VSMEvtIoRead;
 EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL VSMEvtIoDeviceControl;
 
-// ƒwƒ‹ƒp[ŠÖ”
+// ãƒ˜ãƒ«ãƒ‘ãƒ¼é–¢æ•°
 VOID GenerateSineWave(PDEVICE_CONTEXT deviceContext, PUCHAR buffer, ULONG length);
 NTSTATUS CreateAudioDevice(WDFDRIVER driver, PWDFDEVICE_INIT deviceInit);
 
