@@ -3,7 +3,7 @@ https://learn.microsoft.com/ja-jp/windows-hardware/drivers/gettingstarted/writin
 
 ## 必要なもの　パソコン2台
 - ホストマシン(コンパイラ・リンカとデバッガを動かす)(VS, WinDbg)
-- ターゲットマシン(ドライバを動かす、仮想マシンでも良いが、HyprVでないとだめかもしれない)
+- ターゲットマシン(ドライバを動かす、仮想マシンでも良いが、HyperVでないとだめかもしれない)
 
 ## 1. ホストマシンに開発環境を構築する
 
@@ -75,7 +75,11 @@ https://learn.microsoft.com/ja-jp/windows-hardware/drivers/gettingstarted/writin
   - C:\Program Files (x86)\Windows Kits\10\Debuggers\x64\ に移動
   - WinDbg -k net:port=*,key=*
     - portとkeyは、4. プロビジョニングでデバイスを作成したときに表示される値を使う
-
+- KdPrintfの出力をキャプチャする
+  - デバッガをBrakeする
+    - kd>が表示されることを確認する
+  - ed nt!Kd_DEFAULT_MASK 0xFFFFFFFF
+  - ed nt!Kd_IHVDRIVER_MASK 0xFFFFFFFF
 
 
 
