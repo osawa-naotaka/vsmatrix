@@ -3,8 +3,6 @@
 #include <ntddk.h>
 #include <wdf.h>
 #include <acx.h>
-#include <devguid.h>
-
 
 #define RETURN_NTSTATUS_IF_FAILED(X) \
     status = X; \
@@ -33,6 +31,7 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DEVICE_CONTEXT, GetDeviceContext)
 typedef struct _STREAM_CONTEXT {
     ACXDATAFORMAT DataFormat;
     BOOLEAN Running;
+    PACX_RTPACKET Packet;
 } STREAM_CONTEXT, * PSTREAM_CONTEXT;
 
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(STREAM_CONTEXT, GetStreamContext)
@@ -44,6 +43,10 @@ EVT_ACX_STREAM_PREPARE_HARDWARE EvtStreamPrepareHardware;
 EVT_ACX_STREAM_RUN EvtStreamRun;
 EVT_ACX_STREAM_PAUSE EvtStreamPause;
 EVT_WDF_TIMER EvtTimerFunc;
+EVT_ACX_STREAM_GET_HW_LATENCY EvtStreamGetHwLatency;
+EVT_ACX_STREAM_GET_CAPTURE_PACKET EvtStreamGetCapturePacket;
+EVT_ACX_STREAM_GET_CURRENT_PACKET EvtStreamGetCurrentPacket;
+
 
 // {75BD0EC5-B011-44F9-B26B-43FEB527313B}
 static const GUID COMPONENT_GUID =
@@ -153,16 +156,6 @@ NTSTATUS EvtDriverDeviceAdd(
     ACXCIRCUIT                      circuit;
     RETURN_NTSTATUS_IF_FAILED_WITH_CLEANUP(AcxCircuitCreate(device, &circuitAttributes, &circuitInit, &circuit));
 
-/*
-    // タイマー作成（データ生成用）
-    WDF_TIMER_CONFIG timerConfig;
-    WDF_TIMER_CONFIG_INIT_PERIODIC(&timerConfig, EvtTimerFunc, 10); // 10ms間隔
-
-    WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
-    attributes.ParentObject = device;
-
-    status = WdfTimerCreate(&timerConfig, &attributes, &deviceContext->Timer);
-*/
 
     KdPrint(("vsmatrix: EvtDriverDeviceAdd finished.\n"));
 
@@ -207,6 +200,16 @@ NTSTATUS EvtCircuitCreateStream(
     
     RETURN_NTSTATUS_IF_FAILED(AcxStreamInitAssignAcxStreamCallbacks(StreamInit, &streamCallbacks));
 
+    // RTストリームコールバック設定
+    ACX_RT_STREAM_CALLBACKS         rtCallbacks;
+    ACX_RT_STREAM_CALLBACKS_INIT(&rtCallbacks);
+
+    rtCallbacks.EvtAcxStreamGetHwLatency = EvtStreamGetHwLatency;
+    rtCallbacks.EvtAcxStreamGetCapturePacket = EvtStreamGetCapturePacket;
+    rtCallbacks.EvtAcxStreamGetCurrentPacket = EvtStreamGetCurrentPacket;
+
+    RETURN_NTSTATUS_IF_FAILED(AcxStreamInitAssignAcxRtStreamCallbacks(StreamInit, &rtCallbacks));
+
     // ストリーム作成
     WDF_OBJECT_ATTRIBUTES attributes;
     WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&attributes, STREAM_CONTEXT);
@@ -214,12 +217,100 @@ NTSTATUS EvtCircuitCreateStream(
     ACXSTREAM stream;
     RETURN_NTSTATUS_IF_FAILED(AcxRtStreamCreate(Device, Circuit, &attributes, &StreamInit, &stream));
 
+    // パケットバッファアロケート
+    auto DeviceDriverTag = (ULONG)'CduA'; // what is CduA???
+    auto packet = (PACX_RTPACKET)ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(ACX_RTPACKET), DeviceDriverTag);
+    if (packet == nullptr) {
+        KdPrint(("vsmatrix: malloc 1 fails for a packet.\n"));
+        return STATUS_NO_MEMORY;
+    }
+
+    ACX_RTPACKET_INIT(packet);
+    auto packetBuffer = ExAllocatePool2(POOL_FLAG_NON_PAGED, 512 * sizeof(SHORT), DeviceDriverTag);
+    if (packetBuffer == nullptr) {
+        KdPrint(("vsmatrix: malloc 2 fails for a packet.\n"));
+        // memory leakage: must fix later.
+        return STATUS_NO_MEMORY;
+    }
+
+    // パケットバッファに波形書き込み
+    for (ULONG i = 0; i < 512; i++) {
+        // 矩形波の値（最大振幅の50%）
+        ((SHORT*)packetBuffer)[i] = i < 256 ? 16384 : -16384;
+    }
+
+    auto pMdl = IoAllocateMdl(packetBuffer, 512 * sizeof(SHORT), FALSE, TRUE, NULL);
+    if (pMdl == nullptr) {
+        KdPrint(("vsmatrix: malloc 3 fails for a packet.\n"));
+        // memory leakage: must fix later.
+        return STATUS_NO_MEMORY;
+    }
+
+    MmBuildMdlForNonPagedPool(pMdl);
+
+    WDF_MEMORY_DESCRIPTOR_INIT_MDL(&packet->RtPacketBuffer, pMdl, 512 * sizeof(SHORT));
+
+    packet->RtPacketSize = 512 * sizeof(SHORT);
+    packet->RtPacketOffset = 0;
+
+    // ストリームコンテキスト設定
     auto streamCtx = GetStreamContext(stream);
     ASSERT(streamCtx);
     streamCtx->DataFormat = DataFormat;
     streamCtx->Running = FALSE;
+    streamCtx->Packet = packet;
 
     KdPrint(("vsmatrix: EvtCircuitCreateStream finished.\n"));
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+EvtStreamGetHwLatency(
+    _In_ ACXSTREAM Stream,
+    _Out_ ULONG* FifoSize,
+    _Out_ ULONG* Delay
+)
+{
+    PAGED_CODE();
+    UNREFERENCED_PARAMETER(Stream);
+    KdPrint(("vsmatrix: event EvtStreamGetHwLatency raised.\n"));
+
+    *FifoSize = 512 * sizeof(SHORT);
+    *Delay = 0;
+    return STATUS_SUCCESS;
+}
+
+
+NTSTATUS
+EvtStreamGetCapturePacket(
+    _In_ ACXSTREAM          Stream,
+    _Out_ ULONG* LastCapturePacket,
+    _Out_ ULONGLONG* QPCPacketStart,
+    _Out_ BOOLEAN* MoreData
+)
+{
+    PAGED_CODE();
+    UNREFERENCED_PARAMETER(Stream);
+    KdPrint(("vsmatrix: event EvtStreamGetCapturePacket raised.\n"));
+
+    *LastCapturePacket = 0;
+    *QPCPacketStart = 0;
+    *MoreData = true;
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+EvtStreamGetCurrentPacket(
+    _In_ ACXSTREAM          Stream,
+    _Out_ PULONG            CurrentPacket
+)
+{
+    PAGED_CODE();
+    KdPrint(("vsmatrix: event EvtStreamGetCurrentPacket raised.\n"));
+    UNREFERENCED_PARAMETER(Stream);
+
+    *CurrentPacket = 0;
 
     return STATUS_SUCCESS;
 }
@@ -269,56 +360,3 @@ NTSTATUS EvtStreamPause(
 
     return STATUS_SUCCESS;
 }
-
-// タイマーコールバック - 440Hz矩形波生成
-VOID EvtTimerFunc(
-    _In_ WDFTIMER Timer
-)
-{
-    UNREFERENCED_PARAMETER(Timer);
-    /*
-    WDFDEVICE device = WdfTimerGetParentObject(Timer);
-    PDEVICE_CONTEXT deviceContext = GetDeviceContext(device);
-
-    if (deviceContext->Stream == NULL) {
-        return;
-    }
-
-    // RTパケット取得
-    PACX_RT_PACKET packet = nullptr;
-    NTSTATUS status = AcxStreamGetRtPacket(
-        deviceContext->Stream,
-        &packet,
-        0
-    );
-
-    if (!NT_SUCCESS(status) || packet == nullptr) {
-        return;
-    }
-
-    // 16ビット PCM として処理
-    SHORT* buffer = (SHORT*)packet->Buffer;
-    ULONG sampleCount = packet->BufferSize / sizeof(SHORT);
-
-    // 440Hz矩形波生成
-    // サンプルレート48000Hzで440Hzを生成 → 約109サンプルで1周期
-    ULONG samplesPerPeriod = deviceContext->SampleRate / 440;
-
-    for (ULONG i = 0; i < sampleCount; i++) {
-        // 矩形波の値（最大振幅の50%）
-        buffer[i] = deviceContext->HighState ? 16384 : -16384;
-
-        deviceContext->CurrentSample++;
-
-        // 半周期ごとに状態を切り替え
-        if (deviceContext->CurrentSample >= samplesPerPeriod / 2) {
-            deviceContext->HighState = !deviceContext->HighState;
-            deviceContext->CurrentSample = 0;
-        }
-    }
-
-    // パケット返却
-    AcxStreamReturnRtPacket(deviceContext->Stream, packet);
-    */
-}
-
