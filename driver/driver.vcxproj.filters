@@ -24,13 +24,8 @@
     </Inf>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="driver.c">
+    <ClCompile Include="driver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="driver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

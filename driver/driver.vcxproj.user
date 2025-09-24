@@ -6,8 +6,8 @@
     <HardwareIdString>Root\VsMatrixAudio</HardwareIdString>
     <CommandLine />
     <ScriptPath>C:\Program Files (x86)\Windows Kits\10\Testing\Tests\Utilities\DefaultDriverPackageInstallationTask.dll</ScriptPath>
-    <DbgengRemoteMachineName>DriverDev</DbgengRemoteMachineName>
-    <DbgengKernelMachineName>DriverDev</DbgengKernelMachineName>
+    <DbgengRemoteMachineName>WinDev2407Eval</DbgengRemoteMachineName>
+    <DbgengKernelMachineName>WinDev2407Eval</DbgengKernelMachineName>
     <DeployFiles />
     <ScriptName>Microsoft.DriverKit.DefaultDriverPackageInstallationClass.PerformDefaultDriverPackageInstallation</ScriptName>
     <ScriptDeviceQuery />
